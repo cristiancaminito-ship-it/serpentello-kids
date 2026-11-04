@@ -1,0 +1,21 @@
+'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),N=24,S=20;
+const scoreEl=document.getElementById('score'),message=document.getElementById('message'),speed=document.getElementById('speed');
+const vectors={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
+let snake,dir,nextDir,apple,score,mode='idle',paused=false,timer=null;
+const same=(a,b)=>a.x===b.x&&a.y===b.y;
+function reset(){snake=[{x:7,y:12},{x:6,y:12},{x:5,y:12}];dir={...vectors.right};nextDir={...dir};apple={x:16,y:12};score=0;paused=false;scoreEl.textContent='0';document.getElementById('pause').textContent='⏸ Pausa';draw()}
+function food(){const free=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(!snake.some(p=>p.x===x&&p.y===y))free.push({x,y});return free.length?free[Math.floor(Math.random()*free.length)]:null}
+function draw(){for(let y=0;y<N;y++)for(let x=0;x<N;x++){ctx.fillStyle=(x+y)%2?'#e4f3c7':'#edf8d8';ctx.fillRect(x*S,y*S,S,S)}if(apple){ctx.fillStyle='#e94754';ctx.beginPath();ctx.arc((apple.x+.5)*S,(apple.y+.55)*S,8,0,Math.PI*2);ctx.fill();ctx.fillStyle='#3c984e';ctx.fillRect((apple.x+.5)*S-1,apple.y*S,3,6)}snake.forEach((p,i)=>{ctx.fillStyle=i===0?'#248f49':i%2?'#61c66e':'#4db85f';ctx.beginPath();ctx.roundRect(p.x*S+1,p.y*S+1,18,18,6);ctx.fill()});const h=snake[0],px=h.x*S,py=h.y*S;const eyes=dir.x!==0?[[11,5],[11,13]]:[[5,9],[13,9]];eyes.forEach(([x,y])=>{ctx.fillStyle='white';ctx.beginPath();ctx.arc(px+x,py+y,3.5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#193d28';ctx.beginPath();ctx.arc(px+x+dir.x,py+y+dir.y,1.8,0,Math.PI*2);ctx.fill()})}
+function stop(){clearInterval(timer);timer=null}function run(){stop();timer=setInterval(step,Number(speed.value))}
+function start(m){stop();reset();mode=m;message.textContent=m==='demo'?'👀 Guarda: il serpente cerca le mele!':'🎮 Usa le frecce per guidare il serpente!';run()}
+function autoDirection(){const head=snake[0],blocked=new Set(snake.slice(0,-1).map(p=>p.x+','+p.y)),queue=[{p:head,first:null}],seen=new Set([head.x+','+head.y]);for(let i=0;i<queue.length;i++){const {p,first}=queue[i];if(same(p,apple)&&first)return first;for(const v of Object.values(vectors)){const n={x:p.x+v.x,y:p.y+v.y},key=n.x+','+n.y;if(n.x<0||n.y<0||n.x>=N||n.y>=N||seen.has(key)||blocked.has(key))continue;seen.add(key);queue.push({p:n,first:first||v})}}return Object.values(vectors).find(v=>{const n={x:head.x+v.x,y:head.y+v.y};return n.x>=0&&n.y>=0&&n.x<N&&n.y<N&&!snake.slice(0,-1).some(p=>same(p,n))})||dir}
+function step(){if(paused||mode==='idle')return;if(mode==='demo')nextDir=autoDirection();if(nextDir.x!==-dir.x||nextDir.y!==-dir.y)dir={...nextDir};const head={x:snake[0].x+dir.x,y:snake[0].y+dir.y},eating=apple&&same(head,apple),body=eating?snake:snake.slice(0,-1);if(head.x<0||head.y<0||head.x>=N||head.y>=N||body.some(p=>same(p,head))){stop();mode='idle';message.textContent='🌈 Il serpente si è fermato! Premi Ricomincia.';return}snake.unshift(head);if(eating){score++;scoreEl.textContent=score;apple=food();message.textContent=apple?'🍎 Gnam! Il serpente è cresciuto!':'🎉 Hai riempito il prato!';if(!apple){stop();mode='idle'}}else snake.pop();draw()}
+function turn(name){if(mode!=='play'||paused)return;const v=vectors[name];if(v.x!==-dir.x||v.y!==-dir.y)nextDir={...v}}
+document.querySelectorAll('[data-dir]').forEach(b=>b.addEventListener('click',()=>turn(b.dataset.dir)));
+document.addEventListener('keydown',e=>{const key={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'}[e.key];if(key){e.preventDefault();turn(key)}});
+document.getElementById('demo').addEventListener('click',()=>start('demo'));
+document.getElementById('play').addEventListener('click',()=>start('play'));
+document.getElementById('reset').addEventListener('click',()=>{stop();mode='idle';reset();message.textContent='🌟 Pronto per una nuova avventura!'});
+document.getElementById('pause').addEventListener('click',e=>{if(mode==='idle')return;paused=!paused;e.currentTarget.textContent=paused?'▶️ Riprendi':'⏸ Pausa';message.textContent=paused?'⏸ Il serpente riposa!':'🐍 Si riparte!'});
+speed.addEventListener('change',()=>{if(timer)run()});reset();
