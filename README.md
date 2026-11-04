@@ -1,15 +1,8 @@
-# 🐍 Serpentello Kids
+# 🐍 Serpentello Kids — versione fotografica
+Gioco touchscreen a schermo intero, con immagini realistiche generate appositamente (pitone, prato, mela). Apri `index.html` nel browser, senza installazioni.
 
-Gioco educativo gratuito in italiano, ispirato a Snake. Per computer, tablet e smartphone.
+- Tocca **Gioca tu** per guidare il pitone con il pad o con swipe.
+- Tocca **Guarda il pitone** per la modalità automatica.
+- Usa ⛶ per lo schermo intero, ⏸ per la pausa.
 
-## Come si usa
-Apri `index.html` nel browser. Nessuna installazione richiesta.
-
-- **Guarda il serpente:** dimostrazione automatica, il serpente cerca le mele.
-- **Gioca tu:** frecce della tastiera o pulsanti touch.
-- Velocità regolabile, pausa e ricomincia.
-
-## Pubblicazione
-In GitHub apri **Settings → Pages → Build and deployment**, seleziona **Deploy from a branch**, scegli **main** e **/(root)**, poi **Save**.
-
-Il movimento è una rappresentazione giocosa, non una simulazione scientifica del movimento reale dei serpenti.
+La grafica è composta da immagini fotografiche generate, ritagliate e animate come sprite 2D. Non è una simulazione 3D né un modello biologico del movimento reale.
