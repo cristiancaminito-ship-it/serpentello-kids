@@ -1,0 +1,39 @@
+name: Installa gioco dallo ZIP
+on:
+  push:
+    paths:
+      - 'serpentello-kids-realistico.zip'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  installa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scarica repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Estrai automaticamente il gioco
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -t serpentello-kids-realistico.zip
+          unzip -o serpentello-kids-realistico.zip -d .
+          test -f index.html
+          test -f app.js
+          test -f style.css
+          test -f assets/pitone.png
+          test -f assets/erba.jpg
+          test -f assets/mela.png
+          rm serpentello-kids-realistico.zip
+      - name: Pubblica i file estratti
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Installa automaticamente Serpentello Kids realistico"
+            git push
+          fi
