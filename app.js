@@ -41,15 +41,18 @@ new GLTFLoader().load("assets/cobra.glb",gltf=>{
  if(smallest===1 && longAxis===2)root.rotation.z=Math.PI/2;
  else if(smallest===2 && longAxis===1)root.rotation.z=-Math.PI/2;
  else if(smallest===0 && longAxis===2)root.rotation.z=Math.PI/2;
- snake.add(root);
- externalSnake=root;
+ const pivot=new THREE.Group();
+ pivot.add(root);
+ snake.add(pivot);
+ externalSnake=pivot;
  loadedSnake=true;
  headGroup.visible=false;
  if(bodyMesh)bodyMesh.visible=false;
  if(gltf.animations.length){
   snakeMixer=new THREE.AnimationMixer(model);
-  const clip=gltf.animations.find(x=>/loop|slither/i.test(x.name))||gltf.animations[0];
-  snakeMixer.clipAction(clip).play();
+  const clip=gltf.animations.find(x=>/slither|crawl|walk|move/i.test(x.name));
+  if(clip)snakeMixer.clipAction(clip).play();
+  else snakeMixer=null;
  }
  flash("🐍 Cobra 3D caricato");
 },undefined,e=>console.warn("Modello 3D esterno non disponibile",e));
@@ -90,6 +93,6 @@ if(Math.abs(head.x)>W/2+25||Math.abs(head.y)>H/2+25){head.x=THREE.MathUtils.clam
 trail.unshift(head.clone());while(trail.length>65)trail.pop();
 if(head.distanceTo(goal)<35){score++;scoreLabel.textContent=score;setGoal();flash("🍎 Bravo!")}}
 headGroup.position.copy(head);headGroup.position.z=13;headGroup.rotation.z=angle;shade.position.set(head.x,head.y,-9);
-if(!loadedSnake&&trail.length>3)bodyGeometry();if(loadedSnake&&snakeMixer&&!paused)snakeMixer.update(dt);if(externalSnake){externalSnake.position.set(head.x,head.y,0);externalSnake.rotation.z=angle}apple.rotation.z=Math.sin(t*.001)*.08;
+if(!loadedSnake&&trail.length>3)bodyGeometry();if(loadedSnake&&snakeMixer&&!paused&&mode!=="idle")snakeMixer.update(dt);if(externalSnake){externalSnake.position.set(head.x,head.y,0);externalSnake.rotation.z=angle}apple.rotation.z=Math.sin(t*.001)*.08;
 renderer.render(scene,camera);if(t>noticeUntil)notice.textContent=""}
 window.addEventListener("resize",resize);resize();head.set(-70,0,0);initTrail();setGoal();requestAnimationFrame(frame);
