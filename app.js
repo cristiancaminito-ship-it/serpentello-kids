@@ -1,4 +1,5 @@
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js";
+import * as THREE from "three";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js";
 const stage=document.querySelector("#stage"),canvas=document.querySelector("#field"),overlay=document.querySelector("#overlay"),scoreLabel=document.querySelector("#score"),notice=document.querySelector("#notice");
 let W=1,H=1,mode="idle",paused=false,score=0,last=0,angle=0,targetAngle=0,elapsed=0,noticeUntil=0;
 const speed=115,head=new THREE.Vector3(),goal=new THREE.Vector3(),trail=[];
@@ -18,7 +19,33 @@ appleBall.scale.set(.95,1.02,.65);apple.add(appleBall);
 const leaf=new THREE.Mesh(new THREE.SphereGeometry(6,12,8),new THREE.MeshStandardMaterial({color:0x3b8a25}));leaf.scale.set(1.8,.55,.2);leaf.position.set(6,18,3);leaf.rotation.z=.45;apple.add(leaf);
 const snake=new THREE.Group();scene.add(snake);
 const skin=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.68,metalness:0,side:THREE.DoubleSide});
-let bodyMesh=null;
+let bodyMesh=null,externalSnake=null,snakeMixer=null,loadedSnake=false;
+new GLTFLoader().load("https://gaitkit.com/cdn/snake.glb",gltf=>{
+ const model=gltf.scene;
+ model.updateMatrixWorld(true);
+ const bounds=new THREE.Box3().setFromObject(model);
+ const size=bounds.getSize(new THREE.Vector3());
+ if(!size.z||!Number.isFinite(size.z))return;
+ const scale=260/size.z;
+ const center=bounds.getCenter(new THREE.Vector3());
+ model.position.set(-center.x,-bounds.min.y,-bounds.max.z);
+ const root=new THREE.Group();
+ root.add(model);
+ root.scale.setScalar(scale);
+ root.rotation.x=Math.PI/2;
+ snake.add(root);
+ externalSnake=root;
+ loadedSnake=true;
+ headGroup.visible=false;
+ if(bodyMesh)bodyMesh.visible=false;
+ if(gltf.animations.length){
+  snakeMixer=new THREE.AnimationMixer(model);
+  const clip=gltf.animations.find(x=>/loop|slither/i.test(x.name))||gltf.animations[0];
+  snakeMixer.clipAction(clip).play();
+ }
+ flash("Nuovo serpente 3D caricato");
+},undefined,e=>console.warn("Modello 3D esterno non disponibile",e));
+
 const headGroup=new THREE.Group();snake.add(headGroup);
 const headMesh=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),new THREE.MeshStandardMaterial({color:0x9b7245,roughness:.55}));
 headMesh.scale.set(24,13,10);headGroup.add(headMesh);
@@ -55,6 +82,6 @@ if(Math.abs(head.x)>W/2+25||Math.abs(head.y)>H/2+25){head.x=THREE.MathUtils.clam
 trail.unshift(head.clone());while(trail.length>65)trail.pop();
 if(head.distanceTo(goal)<35){score++;scoreLabel.textContent=score;setGoal();flash("🍎 Bravo!")}}
 headGroup.position.copy(head);headGroup.position.z=13;headGroup.rotation.z=angle;shade.position.set(head.x,head.y,-9);
-if(trail.length>3)bodyGeometry();apple.rotation.z=Math.sin(t*.001)*.08;
+if(!loadedSnake&&trail.length>3)bodyGeometry();if(loadedSnake&&snakeMixer&&!paused)snakeMixer.update(dt);if(externalSnake){externalSnake.position.set(head.x,head.y,0);externalSnake.rotation.z=angle+Math.PI/2}apple.rotation.z=Math.sin(t*.001)*.08;
 renderer.render(scene,camera);if(t>noticeUntil)notice.textContent=""}
 window.addEventListener("resize",resize);resize();head.set(-70,0,0);initTrail();setGoal();requestAnimationFrame(frame);
