@@ -22,38 +22,36 @@ const skin=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.68,metal
 let bodyMesh=null,externalSnake=null,snakeMixer=null,loadedSnake=false;
 new GLTFLoader().load("assets/cobra.glb",gltf=>{
  const model=gltf.scene;
+ // Il GLB include 32 cubi di controllo Blender: non sono parti del cobra.
+ model.traverse(obj=>{if(obj.isMesh&&obj.name!=="COBRA")obj.visible=false;});
  model.updateMatrixWorld(true);
- const bounds=new THREE.Box3().setFromObject(model);
+ const cobraMesh=model.getObjectByName("COBRA");
+ if(!cobraMesh){console.warn("Mesh COBRA non trovata");return;}
+ const bounds=new THREE.Box3().setFromObject(cobraMesh);
  const size=bounds.getSize(new THREE.Vector3());
+ const center=bounds.getCenter(new THREE.Vector3());
  const longest=Math.max(size.x,size.y,size.z);
  if(!longest||!Number.isFinite(longest))return;
- const scale=310/longest;
- const center=bounds.getCenter(new THREE.Vector3());
- model.position.copy(center).multiplyScalar(-1);
- const root=new THREE.Group();
- root.add(model);
- root.scale.setScalar(scale);
- const dimensions=[size.x,size.y,size.z];
- const smallest=dimensions.indexOf(Math.min(...dimensions));
- if(smallest===1)root.rotation.x=Math.PI/2;
- else if(smallest===0)root.rotation.y=Math.PI/2;
- const longAxis=dimensions.indexOf(Math.max(...dimensions));
- if(smallest===1 && longAxis===2)root.rotation.z=Math.PI/2;
- else if(smallest===2 && longAxis===1)root.rotation.z=-Math.PI/2;
- else if(smallest===0 && longAxis===2)root.rotation.z=Math.PI/2;
+ const scale=240/longest;
+ const centerGroup=new THREE.Group();
+ centerGroup.position.copy(center).multiplyScalar(-1);
+ centerGroup.add(model);
+ const orientation=new THREE.Group();
+ orientation.rotation.x=Math.PI/2;
+ orientation.rotation.z=-Math.PI/2;
+ orientation.add(centerGroup);
+ const scaled=new THREE.Group();
+ scaled.scale.setScalar(scale);
+ scaled.add(orientation);
  const pivot=new THREE.Group();
- pivot.add(root);
+ pivot.add(scaled);
  snake.add(pivot);
  externalSnake=pivot;
  loadedSnake=true;
  headGroup.visible=false;
  if(bodyMesh)bodyMesh.visible=false;
- if(gltf.animations.length){
-  snakeMixer=new THREE.AnimationMixer(model);
-  const clip=gltf.animations.find(x=>/slither|crawl|walk|move/i.test(x.name));
-  if(clip)snakeMixer.clipAction(clip).play();
-  else snakeMixer=null;
- }
+ const clip=gltf.animations.find(x=>x.name==="ArmatureAction");
+ if(clip){snakeMixer=new THREE.AnimationMixer(model);snakeMixer.clipAction(clip).play();}
  flash("🐍 Cobra 3D caricato");
 },undefined,e=>console.warn("Modello 3D esterno non disponibile",e));
 
