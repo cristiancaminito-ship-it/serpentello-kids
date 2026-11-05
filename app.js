@@ -37,9 +37,11 @@ new GLTFLoader().load("assets/cobra.glb",gltf=>{
  centerGroup.position.copy(center).multiplyScalar(-1);
  centerGroup.add(model);
  const orientation=new THREE.Group();
- orientation.rotation.x=Math.PI/2;
- orientation.rotation.z=-Math.PI/2;
- orientation.add(centerGroup);
+ const tilt=new THREE.Group();
+ tilt.rotation.x=Math.PI/2;
+ tilt.add(centerGroup);
+ orientation.rotation.z=Math.PI/2;
+ orientation.add(tilt);
  const scaled=new THREE.Group();
  scaled.scale.setScalar(scale);
  scaled.add(orientation);
