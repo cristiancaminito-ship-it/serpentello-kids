@@ -20,19 +20,20 @@ const leaf=new THREE.Mesh(new THREE.SphereGeometry(6,12,8),new THREE.MeshStandar
 const snake=new THREE.Group();scene.add(snake);
 const skin=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.68,metalness:0,side:THREE.DoubleSide});
 let bodyMesh=null,externalSnake=null,snakeMixer=null,loadedSnake=false;
-new GLTFLoader().load("https://gaitkit.com/cdn/snake.glb",gltf=>{
+new GLTFLoader().load("assets/cobra.glb",gltf=>{
  const model=gltf.scene;
  model.updateMatrixWorld(true);
  const bounds=new THREE.Box3().setFromObject(model);
  const size=bounds.getSize(new THREE.Vector3());
- if(!size.z||!Number.isFinite(size.z))return;
- const scale=260/size.z;
+ const longest=Math.max(size.x,size.y,size.z);
+ if(!longest||!Number.isFinite(longest))return;
+ const scale=200/longest;
  const center=bounds.getCenter(new THREE.Vector3());
- model.position.set(-center.x,-bounds.min.y,-bounds.max.z);
+ model.position.copy(center).multiplyScalar(-1);
  const root=new THREE.Group();
  root.add(model);
  root.scale.setScalar(scale);
- root.rotation.x=Math.PI/2;
+ root.rotation.x=0;
  snake.add(root);
  externalSnake=root;
  loadedSnake=true;
@@ -43,7 +44,7 @@ new GLTFLoader().load("https://gaitkit.com/cdn/snake.glb",gltf=>{
   const clip=gltf.animations.find(x=>/loop|slither/i.test(x.name))||gltf.animations[0];
   snakeMixer.clipAction(clip).play();
  }
- flash("Nuovo serpente 3D caricato");
+ flash("🐍 Cobra 3D caricato");
 },undefined,e=>console.warn("Modello 3D esterno non disponibile",e));
 
 const headGroup=new THREE.Group();snake.add(headGroup);
