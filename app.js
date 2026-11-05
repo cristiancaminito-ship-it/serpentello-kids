@@ -27,13 +27,20 @@ new GLTFLoader().load("assets/cobra.glb",gltf=>{
  const size=bounds.getSize(new THREE.Vector3());
  const longest=Math.max(size.x,size.y,size.z);
  if(!longest||!Number.isFinite(longest))return;
- const scale=200/longest;
+ const scale=310/longest;
  const center=bounds.getCenter(new THREE.Vector3());
  model.position.copy(center).multiplyScalar(-1);
  const root=new THREE.Group();
  root.add(model);
  root.scale.setScalar(scale);
- root.rotation.x=0;
+ const dimensions=[size.x,size.y,size.z];
+ const smallest=dimensions.indexOf(Math.min(...dimensions));
+ if(smallest===1)root.rotation.x=Math.PI/2;
+ else if(smallest===0)root.rotation.y=Math.PI/2;
+ const longAxis=dimensions.indexOf(Math.max(...dimensions));
+ if(smallest===1 && longAxis===2)root.rotation.z=Math.PI/2;
+ else if(smallest===2 && longAxis===1)root.rotation.z=-Math.PI/2;
+ else if(smallest===0 && longAxis===2)root.rotation.z=Math.PI/2;
  snake.add(root);
  externalSnake=root;
  loadedSnake=true;
@@ -83,6 +90,6 @@ if(Math.abs(head.x)>W/2+25||Math.abs(head.y)>H/2+25){head.x=THREE.MathUtils.clam
 trail.unshift(head.clone());while(trail.length>65)trail.pop();
 if(head.distanceTo(goal)<35){score++;scoreLabel.textContent=score;setGoal();flash("🍎 Bravo!")}}
 headGroup.position.copy(head);headGroup.position.z=13;headGroup.rotation.z=angle;shade.position.set(head.x,head.y,-9);
-if(!loadedSnake&&trail.length>3)bodyGeometry();if(loadedSnake&&snakeMixer&&!paused)snakeMixer.update(dt);if(externalSnake){externalSnake.position.set(head.x,head.y,0);externalSnake.rotation.z=angle+Math.PI/2}apple.rotation.z=Math.sin(t*.001)*.08;
+if(!loadedSnake&&trail.length>3)bodyGeometry();if(loadedSnake&&snakeMixer&&!paused)snakeMixer.update(dt);if(externalSnake){externalSnake.position.set(head.x,head.y,0);externalSnake.rotation.z=angle}apple.rotation.z=Math.sin(t*.001)*.08;
 renderer.render(scene,camera);if(t>noticeUntil)notice.textContent=""}
 window.addEventListener("resize",resize);resize();head.set(-70,0,0);initTrail();setGoal();requestAnimationFrame(frame);
