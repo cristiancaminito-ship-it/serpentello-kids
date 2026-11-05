@@ -1,0 +1,47 @@
+name: Installa cobra 3D da Blender
+on:
+  push:
+    paths:
+      - 'snake-cobra-animated-base-model.zip'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  converti:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Installa Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y blender
+      - name: Estrai modello
+        run: |
+          mkdir -p cobra-source assets
+          unzip -o snake-cobra-animated-base-model.zip -d cobra-source
+          test -f cobra-source/source/Suake_01_BASE4ALL_01a.blend
+      - name: Esporta GLB con texture e animazioni
+        run: |
+          cat > /tmp/export_cobra.py <<'PY'
+          import bpy
+          bpy.ops.wm.open_mainfile(filepath="/home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/cobra-source/source/Suake_01_BASE4ALL_01a.blend")
+          for image in bpy.data.images:
+              if image.source == 'FILE' and not image.packed_file:
+                  import os
+                  candidate = "/home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/cobra-source/textures/suake-skin.jpeg"
+                  if os.path.isfile(candidate):
+                      image.filepath = candidate
+          bpy.ops.export_scene.gltf(filepath="/home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/assets/cobra.glb", export_format='GLB', export_animations=True)
+          PY
+          blender -b -t 2 --python /tmp/export_cobra.py
+          test -s assets/cobra.glb
+      - name: Pubblica cobra
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/cobra.glb
+          git rm -f snake-cobra-animated-base-model.zip
+          git commit -m "Aggiungi cobra 3D esportato da Blender"
+          git push
