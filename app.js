@@ -50,8 +50,8 @@ new GLTFLoader().load("assets/cobra.glb",gltf=>{
  snake.add(pivot);
  externalSnake=pivot;
  loadedSnake=true;
- headGroup.visible=false;
- if(bodyMesh)bodyMesh.visible=false;
+ headGroup.visible=true;
+ if(bodyMesh)bodyMesh.visible=true;
  const clip=gltf.animations.find(x=>x.name==="ArmatureAction");
  if(clip){snakeMixer=new THREE.AnimationMixer(model);snakeMixer.clipAction(clip).play();}
  flash("🐍 Cobra 3D caricato");
@@ -93,6 +93,6 @@ if(Math.abs(head.x)>W/2+25||Math.abs(head.y)>H/2+25){head.x=THREE.MathUtils.clam
 trail.unshift(head.clone());while(trail.length>65)trail.pop();
 if(head.distanceTo(goal)<35){score++;scoreLabel.textContent=score;setGoal();flash("🍎 Bravo!")}}
 headGroup.position.copy(head);headGroup.position.z=13;headGroup.rotation.z=angle;shade.position.set(head.x,head.y,-9);
-if(!loadedSnake&&trail.length>3)bodyGeometry();if(loadedSnake&&snakeMixer&&!paused&&mode!=="idle")snakeMixer.update(dt);if(externalSnake){externalSnake.position.set(head.x,head.y,0);externalSnake.rotation.z=angle}apple.rotation.z=Math.sin(t*.001)*.08;
+if(trail.length>3)bodyGeometry();if(loadedSnake&&snakeMixer&&!paused&&mode!=="idle")snakeMixer.update(dt);if(externalSnake){externalSnake.position.set(head.x,head.y,0);externalSnake.rotation.z=angle}apple.rotation.z=Math.sin(t*.001)*.08;
 renderer.render(scene,camera);if(t>noticeUntil)notice.textContent=""}
 window.addEventListener("resize",resize);resize();head.set(-70,0,0);initTrail();setGoal();requestAnimationFrame(frame);
