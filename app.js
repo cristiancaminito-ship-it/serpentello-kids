@@ -1,8 +1,7 @@
 import * as THREE from "three";
-import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js";
 const stage=document.querySelector("#stage"),canvas=document.querySelector("#field"),overlay=document.querySelector("#overlay"),scoreLabel=document.querySelector("#score"),notice=document.querySelector("#notice");
 let W=1,H=1,mode="idle",paused=false,score=0,last=0,angle=0,targetAngle=0,elapsed=0,noticeUntil=0;
-const speed=115,head=new THREE.Vector3(),goal=new THREE.Vector3(),trail=[];
+const speed=100,head=new THREE.Vector3(),goal=new THREE.Vector3(),trail=[];
 let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:"high-performance"});}catch(e){notice.textContent="Il dispositivo non supporta la grafica 3D WebGL";throw e}
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -18,50 +17,14 @@ const appleBall=new THREE.Mesh(new THREE.SphereGeometry(17,22,14),new THREE.Mesh
 appleBall.scale.set(.95,1.02,.65);apple.add(appleBall);
 const leaf=new THREE.Mesh(new THREE.SphereGeometry(6,12,8),new THREE.MeshStandardMaterial({color:0x3b8a25}));leaf.scale.set(1.8,.55,.2);leaf.position.set(6,18,3);leaf.rotation.z=.45;apple.add(leaf);
 const snake=new THREE.Group();scene.add(snake);
-const skin=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.68,metalness:0,side:THREE.DoubleSide});
-let bodyMesh=null,externalSnake=null,snakeMixer=null,loadedSnake=false;
-new GLTFLoader().load("assets/cobra.glb",gltf=>{
- const model=gltf.scene;
- // Il GLB include 32 cubi di controllo Blender: non sono parti del cobra.
- model.traverse(obj=>{if(obj.isMesh&&obj.name!=="COBRA")obj.visible=false;});
- model.updateMatrixWorld(true);
- const cobraMesh=model.getObjectByName("COBRA");
- if(!cobraMesh){console.warn("Mesh COBRA non trovata");return;}
- const bounds=new THREE.Box3().setFromObject(cobraMesh);
- const size=bounds.getSize(new THREE.Vector3());
- const center=bounds.getCenter(new THREE.Vector3());
- const longest=Math.max(size.x,size.y,size.z);
- if(!longest||!Number.isFinite(longest))return;
- const scale=240/longest;
- const centerGroup=new THREE.Group();
- centerGroup.position.copy(center).multiplyScalar(-1);
- centerGroup.add(model);
- const orientation=new THREE.Group();
- const tilt=new THREE.Group();
- tilt.rotation.x=Math.PI/2;
- tilt.add(centerGroup);
- orientation.rotation.z=Math.PI/2;
- orientation.add(tilt);
- const scaled=new THREE.Group();
- scaled.scale.setScalar(scale);
- scaled.add(orientation);
- const pivot=new THREE.Group();
- pivot.add(scaled);
- snake.add(pivot);
- externalSnake=pivot;
- loadedSnake=true;
- headGroup.visible=true;
- if(bodyMesh)bodyMesh.visible=true;
- const clip=gltf.animations.find(x=>x.name==="ArmatureAction");
- if(clip){snakeMixer=new THREE.AnimationMixer(model);snakeMixer.clipAction(clip).play();}
- flash("🐍 Cobra 3D caricato");
-},undefined,e=>console.warn("Modello 3D esterno non disponibile",e));
+const skin=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.86,metalness:0,side:THREE.DoubleSide});
+let bodyMesh=null;
 
 const headGroup=new THREE.Group();snake.add(headGroup);
 const headMesh=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),new THREE.MeshStandardMaterial({color:0x9b7245,roughness:.55}));
-headMesh.scale.set(24,13,10);headGroup.add(headMesh);
+headMesh.scale.set(27,17,11);headGroup.add(headMesh);
 const snout=new THREE.Mesh(new THREE.SphereGeometry(1,18,12),new THREE.MeshStandardMaterial({color:0xb58a56,roughness:.6}));
-snout.scale.set(13,9,7);snout.position.x=19;headGroup.add(snout);
+snout.scale.set(16,10,8);snout.position.x=19;headGroup.add(snout);
 for(const s of [-1,1]){const eye=new THREE.Mesh(new THREE.SphereGeometry(3.4,12,10),new THREE.MeshStandardMaterial({color:0x0c0a08,roughness:.12}));eye.position.set(8,s*10,7);headGroup.add(eye);const glint=new THREE.Mesh(new THREE.SphereGeometry(.9,8,8),new THREE.MeshBasicMaterial({color:0xffffff}));glint.position.set(9,s*10.9,9.6);headGroup.add(glint)}
 const shade=new THREE.Mesh(new THREE.CircleGeometry(1,32),new THREE.MeshBasicMaterial({color:0x071707,transparent:true,opacity:.27,depthWrite:false}));shade.scale.set(31,15,1);shade.position.z=-10;snake.add(shade);
 function resize(){W=stage.clientWidth;H=stage.clientHeight;renderer.setSize(W,H,false);camera.left=-W/2;camera.right=W/2;camera.top=H/2;camera.bottom=-H/2;camera.updateProjectionMatrix();}
@@ -78,11 +41,11 @@ document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("pointerdo
 window.addEventListener("keydown",e=>{const d={ArrowUp:"up",ArrowDown:"down",ArrowLeft:"left",ArrowRight:"right",w:"up",s:"down",a:"left",d:"right"}[e.key];if(d){e.preventDefault();steer(dirs[d])}});
 let touch=null;canvas.addEventListener("pointerdown",e=>{touch={x:e.clientX,y:e.clientY}});canvas.addEventListener("pointerup",e=>{if(!touch)return;const dx=e.clientX-touch.x,dy=e.clientY-touch.y;if(Math.hypot(dx,dy)>20)steer(Math.atan2(-dy,dx));touch=null});
 function flash(t){notice.textContent=t;noticeUntil=performance.now()+1400}
-function bodyGeometry(){const pts=[];for(let i=0;i<trail.length;i+=2){const p=trail[i].clone();const f=i/(trail.length-1);p.y+=Math.sin(elapsed*7-i*.36)*Math.sin(f*Math.PI)*3;pts.push(p)}if(pts.length<4)return;
-const curve=new THREE.CatmullRomCurve3(pts);const segments=65,sides=10;const positions=[],colors=[],indices=[];
+function bodyGeometry(){const pts=[];for(let i=0;i<trail.length;i+=1){const p=trail[i].clone();const f=i/(trail.length-1);p.y+=Math.sin(elapsed*7-i*.36)*Math.sin(f*Math.PI)*3;pts.push(p)}if(pts.length<4)return;
+const curve=new THREE.CatmullRomCurve3(pts);const segments=110,sides=16;const positions=[],colors=[],indices=[];
 const tan=new THREE.Color(0xb98b54),brown=new THREE.Color(0x33251b),gold=new THREE.Color(0xe2b476);
-for(let i=0;i<=segments;i++){const t=i/segments,p=curve.getPoint(t),tangent=curve.getTangent(t);const normal=new THREE.Vector3(-tangent.y,tangent.x,0).normalize();const taper=Math.pow(Math.max(.018,1-t),.65);const radius=(11+5*Math.sin(Math.PI*t))*taper;for(let j=0;j<=sides;j++){const a=j/sides*Math.PI*2;const q=p.clone().addScaledVector(normal,Math.cos(a)*radius);q.z+=Math.sin(a)*radius*.78+2;positions.push(q.x,q.y,q.z);
-const bands=Math.sin(t*18*Math.PI)+.35*Math.sin(t*37*Math.PI);const patch=Math.sin(a*3+t*47);const c=bands>.08&&patch>-.72?brown:((patch>.4)?gold:tan);colors.push(c.r,c.g,c.b);
+for(let i=0;i<=segments;i++){const t=i/segments,p=curve.getPoint(t),tangent=curve.getTangent(t);const normal=new THREE.Vector3(-tangent.y,tangent.x,0).normalize();const taper=Math.pow(Math.max(.018,1-t),.65);const radius=(14+6*Math.sin(Math.PI*t))*taper;for(let j=0;j<=sides;j++){const a=j/sides*Math.PI*2;const q=p.clone().addScaledVector(normal,Math.cos(a)*radius);q.z+=Math.sin(a)*radius*.78+2;positions.push(q.x,q.y,q.z);
+const bands=Math.cos(t*17*Math.PI);const patch=Math.cos(a*2.1);const blotch=bands>.15&&patch>-.38;const scalePattern=Math.sin(t*950+a*45)*Math.sin(a*43-t*580);const c=blotch?brown.clone().lerp(tan,.10+.09*scalePattern):(patch<-.65?gold:tan.clone().lerp(gold,.16+.09*scalePattern));colors.push(c.r,c.g,c.b);
 if(i<segments&&j<sides){const k=i*(sides+1)+j;indices.push(k,k+sides+1,k+1,k+1,k+sides+1,k+sides+2)}}}
 const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));g.setAttribute("color",new THREE.Float32BufferAttribute(colors,3));g.setIndex(indices);g.computeVertexNormals();if(bodyMesh){snake.remove(bodyMesh);bodyMesh.geometry.dispose()}bodyMesh=new THREE.Mesh(g,skin);snake.add(bodyMesh)}
 function frame(t){requestAnimationFrame(frame);const dt=last?Math.min((t-last)/1000,.04):0;last=t;
@@ -93,6 +56,6 @@ if(Math.abs(head.x)>W/2+25||Math.abs(head.y)>H/2+25){head.x=THREE.MathUtils.clam
 trail.unshift(head.clone());while(trail.length>65)trail.pop();
 if(head.distanceTo(goal)<35){score++;scoreLabel.textContent=score;setGoal();flash("🍎 Bravo!")}}
 headGroup.position.copy(head);headGroup.position.z=13;headGroup.rotation.z=angle;shade.position.set(head.x,head.y,-9);
-if(trail.length>3)bodyGeometry();if(loadedSnake&&snakeMixer&&!paused&&mode!=="idle")snakeMixer.update(dt);if(externalSnake){externalSnake.position.set(head.x,head.y,0);externalSnake.rotation.z=angle}apple.rotation.z=Math.sin(t*.001)*.08;
+if(trail.length>3)bodyGeometry();apple.rotation.z=Math.sin(t*.001)*.08;
 renderer.render(scene,camera);if(t>noticeUntil)notice.textContent=""}
 window.addEventListener("resize",resize);resize();head.set(-70,0,0);initTrail();setGoal();requestAnimationFrame(frame);
