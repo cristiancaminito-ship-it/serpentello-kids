@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'snake-cobra-animated-base-model.zip'
+      - '.github/workflows/installa-cobra.yml'
   workflow_dispatch:
 permissions:
   contents: write
